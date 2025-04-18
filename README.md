@@ -1,1 +1,3 @@
-# Cygnus_cloud
+# Cygnus-X_cloud
+
+CAE(Convolutional Autoencoder)を使用した分子雲の特徴量を抽出できる機械学習モデルを学習する際に必要なモジュール達をまとえたリポジトリ
