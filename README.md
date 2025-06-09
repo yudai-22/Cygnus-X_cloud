@@ -1,3 +1,4 @@
 # Cygnus-X_cloud
 
-　CAE(Convolutional Autoencoder)を使用した分子雲の特徴量を抽出できる機械学習モデルを学習する際に必要なモジュール達をまとめたリポジトリ
+　CAE(Convolutional Autoencoder)モデルを学習する際に必要なモジュール達をまとめたリポジトリ
+データ作成は[make_resize_data](https://github.com/yudai-22/Make_Data_Tools/tree/main/make_resize_data)にて。
