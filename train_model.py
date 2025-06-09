@@ -11,14 +11,15 @@ import wandb
 from training_sub import DataSet, EarlyStopping
 
 
-def train_model(model, criterion, optimizer, num_epochs, args, device, run, augment=True):
+def train_model(model, criterion, optimizer, num_epochs, args, device, run, augment):
     #weight_pass = args.savedir_path + "/model_parameters" + f"/model_parameter_{args.wandb_name}.pth"
-    early_stopping = EarlyStopping(patience=15, verbose=True, path=args.savedir_path + "/model_parameter.pth")
+    early_stopping = EarlyStopping(patience=15, verbose=True, path=args.savedir_path + "/model_parameter.pth", run=run)
 
     data = np.load(args.training_validation_path)
     # data = np.memmap(args.training_validation_path, dtype=np.float32, mode="r", shape=(11676, 120, 112, 112))
     data = torch.from_numpy(data).float()
     label = [0] * len(data)
+    
     train_data, val_data, train_labels, val_labels = train_test_split(
         data, label, test_size=0.2, random_state=42, stratify=label
     )
@@ -39,7 +40,11 @@ def train_model(model, criterion, optimizer, num_epochs, args, device, run, augm
         train_data = torch.stack(augmented_data)
         train_labels = [0] * len(train_data)
 
+    vertical_flip = transforms.RandomVerticalFlip(p=0.5)
+    
     train_dataset = DataSet(train_data, train_labels)
+    # train_dataset = DataSet(train_data, train_labels, transform=vertical_flip)
+
     train_dataloader = DataLoader(train_dataset, batch_size=args.train_mini_batch, shuffle=True)
     val_dataset = DataSet(val_data, val_labels)
     val_dataloader = DataLoader(val_dataset, batch_size=args.val_mini_batch, shuffle=False)
@@ -60,7 +65,7 @@ def train_model(model, criterion, optimizer, num_epochs, args, device, run, augm
                 model.eval()
 
             for images, labels in tqdm.tqdm(dataloader):
-                images = images.view(-1, 1, 120, 112, 112)  # バッチサイズを維持したままチャンネル数を1に設定
+                images = images.view(-1, 1, 30, 100, 100)  # バッチサイズを維持したままチャンネル数を1に設定
                 optimizer.zero_grad()
                 with torch.set_grad_enabled(phase == "train"):
 
@@ -98,5 +103,7 @@ def train_model(model, criterion, optimizer, num_epochs, args, device, run, augm
 
     #np.save(train_loss_path, train_loss_list)
     #np.save(val_loss_path, val_loss_list)
+    wandb.run.summary["val_loss_min"] = min(val_loss_list)
+    wandb.run.summary["train_loss_min"] = min(train_loss_list)
 
     print((time.time() - start) / 60)
