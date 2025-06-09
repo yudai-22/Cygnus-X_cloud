@@ -2,12 +2,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+import wandb
 
 
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
 
-    def __init__(self, path, patience=10, verbose=False, delta=0, trace_func=print):
+    def __init__(self, path, patience=10, verbose=False, delta=0, trace_func=print, run=None):
         """
         Args:
             patience (int): How long to wait after last time validation loss improved.
@@ -30,6 +31,7 @@ class EarlyStopping:
         self.delta = delta
         self.path = path
         self.trace_func = trace_func
+        self.run = run
 
     def __call__(self, val_loss, model):
 
@@ -58,6 +60,11 @@ class EarlyStopping:
             # self.flog.write(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...\n')
         torch.save(model.state_dict(), self.path)
         self.val_loss_min = val_loss
+        if self.run is not None:
+            artifact = wandb.Artifact("model_checkpoint", type="model")
+            artifact.add_file(self.path)
+            alias = [f"val_loss_{val_loss:.4f}", "best"]
+            self.run.log_artifact(artifact, aliases=alias)
 
 
 def weights_init(m):
@@ -66,17 +73,20 @@ def weights_init(m):
         if m.bias is not None:
             nn.init.constant_(m.bias, 0.0)
 
-
 class DataSet:
-    def __init__(self, data, label):
+    def __init__(self, data, label, transform=None):
         self.label = label
         self.data = data
+        self.transform = transform
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
-        return self.data[index], self.label[index]
+        img, label = self.data[index], self.label[index]
+        if self.transform:
+            img = self.transform(img)
+        return img, label
 
 
 def print_and_log(f, moji):
